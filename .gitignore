@@ -4,6 +4,7 @@
 
 # Session Data files
 .RData
+individu_reg.*
 
 # User-specific files
 .Ruserdata
