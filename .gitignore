@@ -3,6 +3,7 @@
 .Rapp.history
 
 secrets.yaml
+_targets/
 
 # Session Data files
 .RData
