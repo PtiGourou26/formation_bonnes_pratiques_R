@@ -1,57 +1,16 @@
-if (!require("ggplot2")) install.packages("ggplot2")
-if (!require("stringr")) install.packages("stringr")
-if (!require("dplyr")) install.packages("dplyr")
-if (!require("tidyverse")) install.packages("tidyverse")
+# Import des librairies ---------------------------------------------------
 
-
-library(tidyverse)
-
-df <- readr::read_csv2(
-  "individu_reg.csv",
-  col_select = c("region", "aemm", "aged", "anai", "catl", "cs1", "cs2",
-                 "cs3", "couple", "na38", "naf08", "pnai12", "sexe", "surf",
-                 "tp", "trans", "ur")
-)
-
-df <- df %>%
-  mutate(aged = as.numeric(aged))
-
-summarise(group_by(df, aged), n())
-
-decennie_a_partir_annee <- function(annee) {
-  return(annee - annee %%
-    10)
-}
-
-ggplot(df) +
-  geom_histogram(aes(x = 5 * floor(as.numeric(aged) / 5)), stat = "count")
-
-# stats trans par statut
-df3 <- df %>%
-  group_by(couple, trans) %>%
-  summarise(x = n()) %>%
-  group_by(couple) %>%
-  mutate(y = 100 * x / sum(x))
-
-p <- # part d'homme dans chaque cohort
-  df %>%
-  group_by(aged, sexe) %>%
-  summarise(SH_sexe = n()) %>%
-  group_by(aged) %>%
-  mutate(SH_sexe = SH_sexe / sum(SH_sexe)) %>%
-  filter(sexe == 1) %>%
-  ggplot() +
-  geom_bar(aes(x = aged, y = SH_sexe), stat = "identity") +
-  geom_point(aes(x = aged, y = SH_sexe), stat = "identity", color = "red") +
-  coord_cartesian(c(0, 100))
-
-
-ggsave("p.png", p)
-
+library(dplyr)
+library(stringr)
+library(ggplot2)
 library(forcats)
-df$sexe <- df$sexe %>%
-  as.character() %>%
-  fct_recode(Homme = "1", Femme = "2")
+
+
+# Import keys -------------------------------------------------------------
+api_token <- yaml::read_yaml("secrets.yaml")
+
+
+# Déclaration des fonctions -----------------------------------------------
 
 # fonction de stat agregee
 fonction_de_stat_agregee <- function(a, b = "moyenne", ...) {
@@ -65,6 +24,46 @@ fonction_de_stat_agregee <- function(a, b = "moyenne", ...) {
   return(x)
 }
 
+
+decennie_a_partir_annee <- function(annee) {
+  return(annee - annee %%
+           10)
+}
+
+
+# Import des données ------------------------------------------------------
+
+df <- readr::read_csv2(
+  "individu_reg.csv",
+  col_select = c("region", "aemm", "aged", "anai", "catl", "cs1", "cs2",
+                 "cs3", "couple", "na38", "naf08", "pnai12", "sexe", "surf",
+                 "tp", "trans", "ur")
+)
+
+
+
+# Retraitement des données ------------------------------------------------
+
+df <- df %>%
+  mutate(aged = as.numeric(aged))
+
+# stats trans par statut
+df3 <- df %>%
+  group_by(couple, trans) %>%
+  summarise(x = n()) %>%
+  group_by(couple) %>%
+  mutate(y = 100 * x / sum(x))
+
+df$sexe <- df$sexe %>%
+  as.character() %>%
+  fct_recode(Homme = "1", Femme = "2")
+
+
+
+# Statistiques descriptives -----------------------------------------------
+
+summarise(group_by(df, aged), n())
+
 fonction_de_stat_agregee(rnorm(10))
 fonction_de_stat_agregee(rnorm(10), "ecart-type")
 fonction_de_stat_agregee(rnorm(10), "variance")
@@ -72,9 +71,30 @@ fonction_de_stat_agregee(rnorm(10), "variance")
 fonction_de_stat_agregee(df %>% filter(sexe == "Homme") %>% pull(aged))
 fonction_de_stat_agregee(df %>% filter(sexe == "Femme") %>% pull(aged))
 
-api_token <- "trotskitueleski$1917"
 
-# modelisation
+
+# Graphiques --------------------------------------------------------------
+
+ggplot(df) +
+  geom_histogram(aes(x = 5 * floor(as.numeric(aged) / 5)), stat = "count")
+
+p <- # part d'homme dans chaque cohort
+  df %>%
+  group_by(aged, sexe) %>%
+  summarise(SH_sexe = n()) %>%
+  group_by(aged) %>%
+  mutate(SH_sexe = SH_sexe / sum(SH_sexe)) %>%
+  filter(sexe == 1) %>%
+  ggplot() +
+  geom_bar(aes(x = aged, y = SH_sexe), stat = "identity") +
+  geom_point(aes(x = aged, y = SH_sexe), stat = "identity", color = "red") +
+  coord_cartesian(c(0, 100))
+
+ggsave("p.png", p)
+
+
+# Modelisation ------------------------------------------------------------
+
 df3 <- df %>%
   select(surf, cs1, ur, couple, aged) %>%
   filter(surf != "Z")
