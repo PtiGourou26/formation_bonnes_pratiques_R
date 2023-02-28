@@ -5,6 +5,8 @@
 # Session Data files
 .RData
 individu_reg.*
+*.png
+.lintr
 
 # User-specific files
 .Ruserdata
